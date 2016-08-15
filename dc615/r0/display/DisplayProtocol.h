@@ -9,6 +9,7 @@
 #include "Arduino.h"
 
 #define TEXT_BUFFER_SIZE 256
+#define GLYPH_WIDTH 5
 #define GLYPH_HEIGHT 5
 #define GLYPH_COUNT 128
 
@@ -37,6 +38,7 @@ enum DisplayCommand {
 #define DisplayFormatGlyphRow(x) ((x) | 0x80)
 #define DisplayFormatGlyph(a,b,c,d,e) DisplayFormatGlyphRow(a), DisplayFormatGlyphRow(b), DisplayFormatGlyphRow(c), DisplayFormatGlyphRow(d), DisplayFormatGlyphRow(e)
 #define DisplayFormatGlyphBits(a,b,c,d,e) ( B100 ## e ## d ## c ## b ## a )
+#define DisplayFormatKerning(left,right) (0x80 | left | (right << 4))
 
 #define DisplayParseGlyphPitchX(n) ((n) & 0x0f)
 #define DisplayParseGlyphPitchY(n) ((n) >> 4)
@@ -45,9 +47,12 @@ enum DisplayCommand {
 #define DisplayParseFrameRate(n) (((uint16_t)(n)) << 2)
 #define DisplayParseDimming(n) (n)
 #define DisplayParseGlyphRow(x) ((x) & 0x7f)
+#define DisplayParseKerningLeft(n) ((n) & 0x07)
+#define DisplayParseKerningRight(n) (((n) >> 4) & 0x07)
 
 extern const char DEFAULT_TEXT[] PROGMEM;
 extern const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM;
+extern const uint8_t DEFAULT_KERNING[GLYPH_COUNT] PROGMEM;
 
 #endif
 

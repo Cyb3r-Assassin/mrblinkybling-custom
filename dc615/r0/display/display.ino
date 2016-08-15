@@ -45,6 +45,7 @@ struct FlashGlyph {
   uint8_t rows[GLYPH_HEIGHT];
 };
 volatile struct FlashGlyph glyphs[GLYPH_COUNT];
+volatile uint8_t glyphWidth[GLYPH_COUNT];
 
 // Text to display
 volatile char text[TEXT_BUFFER_SIZE];
@@ -86,11 +87,106 @@ void clearShiftRegister() {
   displayRow = 0;
 }
 
+// Automatically determine glyph width
+void autokern(uint8_t idx) {
+  uint8_t t, sh;
+
+  // Check for empty glyph
+  t = 0;
+  for (int i = 0; i < DISPLAY_ROWS; i++) {
+    t |= glyphs[idx].rows[i];
+  }
+
+  // Process the glyph if it is not empty
+  t = DisplayParseGlyphRow(t);
+  if (t) {
+    sh = 0;
+    while (!(t & 1)) {
+      t >>= 1;
+      sh++;
+    }
+    for (int i = 0; i < DISPLAY_ROWS; i++) {
+      glyphs[idx].rows[i] = DisplayFormatGlyphRow(DisplayParseGlyphRow(glyphs[idx].rows[i]) >> sh);
+    }
+    sh = 0;
+    while (t) {
+      t >>= 1;
+      sh++;
+    }
+    glyphWidth[idx] = sh;
+  } else {
+    glyphWidth[idx] = GLYPH_WIDTH;
+  }
+}
+
+const int TestFrameRate = 500;
+void testDisplay() {
+  // Initialize to all columns on, first row
+  for (int i = 0; i < DISPLAY_COLS_A; i++) {
+    digitalWrite(ColumnPinA(i), HIGH);
+  }
+  for (int i = 0; i < DISPLAY_COLS_B; i++) {
+    digitalWrite(ColumnPinB(i), HIGH);
+  }
+  digitalWrite(SHIFT_REGISTER_DATA, HIGH);
+  digitalWrite(SHIFT_REGISTER_CLOCK, LOW);
+  digitalWrite(SHIFT_REGISTER_CLOCK, HIGH);
+  digitalWrite(SHIFT_REGISTER_DATA, LOW);
+
+  // Activate each row in sequence
+  for (int i = 0; i < DISPLAY_ROWS; i++) {
+    delay(TestFrameRate);
+    digitalWrite(SHIFT_REGISTER_CLOCK, LOW);
+    digitalWrite(SHIFT_REGISTER_CLOCK, HIGH);
+  }
+
+  // Initialize to all columns off, all rows activated
+  for (int i = 0; i < DISPLAY_COLS_A; i++) {
+    digitalWrite(ColumnPinA(i), LOW);
+  }
+  for (int i = 0; i < DISPLAY_COLS_B; i++) {
+    digitalWrite(ColumnPinB(i), LOW);
+  }
+  digitalWrite(SHIFT_REGISTER_DATA, HIGH);
+  for (int i = 0; i < DISPLAY_ROWS; i++) {
+    digitalWrite(SHIFT_REGISTER_CLOCK, LOW);
+    digitalWrite(SHIFT_REGISTER_CLOCK, HIGH);
+  }
+
+  // Activate each column in sequence
+  for (int i = 0; i < DISPLAY_COLS_A; i++) {
+    digitalWrite(ColumnPinA(i), HIGH);
+    delay(TestFrameRate);
+    digitalWrite(ColumnPinA(i), LOW);
+  }
+  for (int i = 0; i < DISPLAY_COLS_B; i++) {
+    digitalWrite(ColumnPinB(i), HIGH);
+    delay(TestFrameRate);
+    digitalWrite(ColumnPinB(i), LOW);
+  }
+
+  // Return to setup initial conditions: all rows and columns off
+  for (int i = 0; i < DISPLAY_COLS_A; i++) {
+    digitalWrite(ColumnPinA(i), LOW);
+  }
+  for (int i = 0; i < DISPLAY_COLS_B; i++) {
+    digitalWrite(ColumnPinB(i), LOW);
+  }
+  clearShiftRegister();
+  nextFrame = millis();
+}
+
 void setup() {
   // Load default text and glyphs from table in program memory
   strcpy_P((char *)text, DEFAULT_TEXT);
   reindex = true;
   memcpy_P((void *)glyphs, DEFAULT_GLYPHS, sizeof(DEFAULT_GLYPHS));
+
+  // Kerning data
+  for (int i = 0; i < GLYPH_COUNT; i++) {
+    glyphWidth[i] = GLYPH_WIDTH;
+    //autokern(i);
+  }
 
   // SPI slave setup (requires some direct access to AVR registers)
   pinMode(MISO, OUTPUT);
@@ -113,11 +209,20 @@ void setup() {
   pinMode(SHIFT_REGISTER_CLOCK, OUTPUT);
   clearShiftRegister();
 
+  // Animation parameter initial values
+  glyphPitch = DisplayFormatGlyphPitch(6, 6);
+  frameAdvance = DisplayFormatFrameAdvance(1, 0);
+  frameRate = DisplayFormatFrameRate(128);
+  dimming = DisplayFormatDimming(255);
+
   // Animation state initial values
   nextFrame = millis();
   offset_x = 0;
   offset_y = 0;
   dimPdm = 0;
+
+  // Test display
+  //testDisplay();
 }
 
 // Handle incomping SPI data; this is handled in the ISR because the response needs to be loaded into SPDR before the master starts clocking the next byte
@@ -156,6 +261,7 @@ ISR (SPI_STC_vect) {
         glyphs[spiGlyphIdx].rows[spiState++ - 2] = d;
         if (spiState >= GLYPH_HEIGHT + 2) {
           spiState = 0;
+          autokern(spiGlyphIdx);
         }
       }
     }
@@ -212,7 +318,7 @@ inline uint8_t getOutputBits(uint8_t glyphRow, uint8_t cols, uint8_t &textIndex,
     mask <<= 1;
     x++;
     glyphCol++;
-    if (glyphCol >= pitch) {
+    if (glyphCol >= pitch) {   //FIXME: glyph width
       glyphCol = 0;
       if (x >= textWidth) {
         x = 0;
@@ -230,8 +336,12 @@ inline uint8_t getOutputBits(uint8_t glyphRow, uint8_t cols, uint8_t &textIndex,
 // Moves to the next row on the display
 void updateDisplay() {
   int16_t y, x;
-  uint8_t lineIndex, glyphRow, pitch, colIndex, glyphCol, textIndex;
+  uint8_t lineIndex, glyphRow, pitch, rowStartIndex, colIndex, glyphCol, textIndex;
   uint8_t row, mask, bitsA, bitsB;
+
+  if (!textHeight || !textWidth) {
+    return;
+  }
 
   // Find the text row and glyph offset for this display row
   y = offset_y + displayRow;
@@ -247,10 +357,11 @@ void updateDisplay() {
   while (x >= textWidth) {
     x -= textWidth;
   }
-  pitch = DisplayParseGlyphPitchX(glyphPitch);
-  colIndex = x / pitch;
-  glyphCol = x % pitch;
-  textIndex = textLineOffsets[lineIndex];
+  pitch = DisplayParseGlyphPitchX(glyphPitch);   //FIXME: glyph width
+  colIndex = x / pitch;   //FIXME: glyph width
+  glyphCol = x % pitch;   //FIXME: glyph width
+  rowStartIndex = lineIndex ? textLineOffsets[lineIndex - 1] : 0;
+  textIndex = rowStartIndex;
   for (int i = colIndex; i; i--) {
     if (text[textIndex] && (text[textIndex] != '\n')) {
       textIndex++;
@@ -260,8 +371,8 @@ void updateDisplay() {
   // Determine output bits
   row = DisplayParseGlyphRow(glyphs[text[textIndex % GLYPH_COUNT]].rows[glyphRow]);
   row >>= glyphCol;
-  bitsA = getOutputBits(glyphRow, DISPLAY_COLS_A, textIndex, row, glyphCol, x, textLineOffsets[lineIndex]);
-  bitsB = getOutputBits(glyphRow, DISPLAY_COLS_B, textIndex, row, glyphCol, x, textLineOffsets[lineIndex]);
+  bitsA = getOutputBits(glyphRow, DISPLAY_COLS_A, textIndex, row, glyphCol, x, rowStartIndex);
+  bitsB = getOutputBits(glyphRow, DISPLAY_COLS_B, textIndex, row, glyphCol, x, rowStartIndex);
 
   // Apply PDM to handle dimming (the code above is executed whether or not the result is used in order to maintain consistent loop timing)
   if (!displayRow) {
@@ -286,6 +397,26 @@ void updateDisplay() {
   }
 }
 
+//uint8_t testUpdateCounter = 0;
+//uint8_t testUpdateState = 0;
+//void testUpdateDisplay() {
+//  if (!--testUpdateCounter) {
+//    for (int i = 0; i < DISPLAY_COLS_A; i++) {
+//      digitalWrite(ColumnPinA(i), HIGH);
+//    }
+//    for (int i = 0; i < DISPLAY_COLS_B; i++) {
+//      digitalWrite(ColumnPinB(i), HIGH);
+//    }
+//    digitalWrite(SHIFT_REGISTER_DATA, testUpdateState ? LOW : HIGH);
+//    digitalWrite(SHIFT_REGISTER_CLOCK, LOW);
+//    digitalWrite(SHIFT_REGISTER_CLOCK, HIGH);
+//    testUpdateState++;
+//    if (testUpdateState >= DISPLAY_ROWS) {
+//      testUpdateState = 0;
+//    }
+//  }
+//}
+
 void loop() {
   int t;
 
@@ -297,20 +428,32 @@ void loop() {
   // If text buffer has been modified, it needs to be reindexed
   if (reindex) {
     reindex = false;
+    // Pass over the text looking for newline characters
     textLineCount = 0;
+    textColumnCount = 0;
     for (int i = 0; text[i]; i++) {
       if ((text[i] == '\n') && (textLineCount < MAX_LINES)) {
-        t = textLineCount ? i - textLineOffsets[textLineCount - 1] - 1 : i;
+        t = textLineCount ? i - textLineOffsets[textLineCount - 1] - 1 : i;   //FIXME: glyph width
         if (t > textColumnCount) {
           textColumnCount = t;
         }
         textLineOffsets[textLineCount++] = i;
       }
     }
+    // Check the last (or only) line length
+    t = strlen((const char *) text);   //FIXME: glyph width
+    if (textLineCount) {
+      t -= textLineOffsets[textLineCount - 1] + 1;   //FIXME: glyph width
+    }
+    if (t > textColumnCount) {
+      textColumnCount = t;
+    }
+    // Mark any remaining line offset slots and calculate text block dimensions
     for (int i = textLineCount; i < MAX_LINES; i++) {
       textLineOffsets[i] = LINE_NOT_FOUND;
     }
-    textWidth = textColumnCount * (int16_t)DisplayParseGlyphPitchX(glyphPitch);
+    textLineCount++;
+    textWidth = textColumnCount * (int16_t)DisplayParseGlyphPitchX(glyphPitch);   //FIXME: glyph width
     textHeight = textLineCount * (int16_t)DisplayParseGlyphPitchY(glyphPitch);
   }
 
@@ -318,6 +461,7 @@ void loop() {
   if (lastUpdate != millis()) {
     lastUpdate = millis();
     updateDisplay();
+    //testUpdateDisplay();
   }
 
   // Perform frame advance and loopback

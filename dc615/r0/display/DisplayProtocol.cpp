@@ -1,11 +1,16 @@
 /*
- * DisplayProtocol.h - Constants for display module
+ * DisplayProtocol.c - Constants for display module
  * Charles Lehman - 2016-07-24
  */
 
 #include "DisplayProtocol.h"
 
 const char DEFAULT_TEXT[] PROGMEM = "dc615.org  ";
+//const char DEFAULT_TEXT[] PROGMEM = "\x1d\x1f\x1e www.mrblinkybling.com \x1d\x1f\x1e   ";
+//const char DEFAULT_TEXT[] PROGMEM = "ABCDEFGHIJKLMNOPQRSTUVWXYZ  ";
+//const char DEFAULT_TEXT[] PROGMEM = "abcdefghijklmnopqrstuvwxyz  ";
+//const char DEFAULT_TEXT[] PROGMEM = "0123456789  ";
+//const char DEFAULT_TEXT[] PROGMEM = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~\x7f  ";
 
 const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM = {
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),   // nul  0x00
@@ -182,23 +187,23 @@ const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM = {
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
 
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),   // gs   0x1d
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),   // gs   0x1d
+  DisplayFormatGlyphBits(0, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 0),
+  DisplayFormatGlyphBits(0, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),
 
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),   // rs   0x1e
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),   // rs   0x1e
+  DisplayFormatGlyphBits(0, 1, 0, 0, 0),
+  DisplayFormatGlyphBits(0, 1, 1, 0, 0),
+  DisplayFormatGlyphBits(0, 1, 0, 0, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),
 
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),   // us   0x1f
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 0),
+  DisplayFormatGlyphBits(0, 1, 0, 0, 1),   // us   0x1f
+  DisplayFormatGlyphBits(0, 1, 1, 0, 1),
+  DisplayFormatGlyphBits(0, 1, 0, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 1, 0, 1),
+  DisplayFormatGlyphBits(0, 1, 0, 0, 1),
 
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),   //      0x20
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
@@ -340,9 +345,9 @@ const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM = {
 
   DisplayFormatGlyphBits(1, 1, 1, 1, 1),   // 7    0x37
   DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 0, 0, 0, 1),
+  DisplayFormatGlyphBits(0, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),
+  DisplayFormatGlyphBits(0, 0, 1, 0, 0),
 
   DisplayFormatGlyphBits(0, 1, 1, 1, 0),   // 8    0x38
   DisplayFormatGlyphBits(1, 0, 0, 0, 1),
@@ -590,35 +595,35 @@ const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM = {
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
 
-  DisplayFormatGlyphBits(1, 1, 1, 1, 0),   // a    0x61
+  DisplayFormatGlyphBits(0, 1, 1, 1, 0),   // a    0x61
   DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 0, 0, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 1),
 
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),   // b    0x62
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(1, 1, 1, 1, 0),
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(1, 1, 1, 1, 0),
+  DisplayFormatGlyphBits(1, 1, 1, 0, 0),
+  DisplayFormatGlyphBits(1, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(1, 1, 1, 0, 0),
 
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),   // c    0x63
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 1, 0, 0),
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 1, 0, 0),
 
   DisplayFormatGlyphBits(0, 0, 0, 0, 1),   // d    0x64
   DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 0, 0, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 1),
 
-  DisplayFormatGlyphBits(0, 1, 1, 1, 0),   // e    0x65
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(1, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 1, 0, 0),   // e    0x65
+  DisplayFormatGlyphBits(1, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(1, 1, 1, 1, 0),
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 1, 1, 1, 0),
 
   DisplayFormatGlyphBits(0, 0, 1, 1, 0),   // f    0x66
   DisplayFormatGlyphBits(0, 0, 1, 0, 0),
@@ -626,17 +631,17 @@ const uint8_t DEFAULT_GLYPHS[GLYPH_COUNT * GLYPH_HEIGHT] PROGMEM = {
   DisplayFormatGlyphBits(0, 0, 1, 0, 0),
   DisplayFormatGlyphBits(0, 0, 1, 0, 0),
 
-  DisplayFormatGlyphBits(0, 1, 1, 1, 0),   // g    0x67
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(0, 1, 1, 1, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 0),   // g    0x67
+  DisplayFormatGlyphBits(0, 1, 0, 0, 1),
+  DisplayFormatGlyphBits(0, 0, 1, 1, 1),
   DisplayFormatGlyphBits(0, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(1, 1, 1, 1, 0),
+  DisplayFormatGlyphBits(0, 1, 1, 1, 0),
 
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),   // h    0x68
   DisplayFormatGlyphBits(1, 0, 0, 0, 0),
-  DisplayFormatGlyphBits(1, 1, 1, 1, 0),
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
-  DisplayFormatGlyphBits(1, 0, 0, 0, 1),
+  DisplayFormatGlyphBits(1, 1, 1, 0, 0),
+  DisplayFormatGlyphBits(1, 0, 0, 1, 0),
+  DisplayFormatGlyphBits(1, 0, 0, 1, 0),
 
   DisplayFormatGlyphBits(0, 0, 1, 0, 0),   // i    0x69
   DisplayFormatGlyphBits(0, 0, 0, 0, 0),
@@ -875,14 +880,14 @@ const uint8_t DEFAULT_KERNING[GLYPH_COUNT] PROGMEM = {
   DisplayFormatKerning(1, 1),   // ^    0x5e
   DisplayFormatKerning(0, 0),   // _    0x5f
   DisplayFormatKerning(2, 1),   // `    0x60
-  DisplayFormatKerning(0, 0),   // a    0x61
-  DisplayFormatKerning(0, 0),   // b    0x62
-  DisplayFormatKerning(0, 0),   // c    0x63
-  DisplayFormatKerning(0, 0),   // d    0x64
-  DisplayFormatKerning(0, 0),   // e    0x65
+  DisplayFormatKerning(1, 0),   // a    0x61
+  DisplayFormatKerning(0, 1),   // b    0x62
+  DisplayFormatKerning(0, 2),   // c    0x63
+  DisplayFormatKerning(1, 0),   // d    0x64
+  DisplayFormatKerning(0, 1),   // e    0x65
   DisplayFormatKerning(1, 1),   // f    0x66
   DisplayFormatKerning(0, 0),   // g    0x67
-  DisplayFormatKerning(0, 0),   // h    0x68
+  DisplayFormatKerning(0, 1),   // h    0x68
   DisplayFormatKerning(2, 2),   // i    0x69
   DisplayFormatKerning(0, 2),   // j    0x6a
   DisplayFormatKerning(1, 1),   // k    0x6b
